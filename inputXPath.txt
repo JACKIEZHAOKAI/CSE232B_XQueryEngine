@@ -1,0 +1,44 @@
+XPath Expression #1 
+doc("j_caesar.xml")//(ACT,PERSONAE)/TITLE 
+1. Dramatis Personae
+2. ACT I
+3. ACT II
+4. ACT III
+5. ACT IV
+6. ACT V
+
+ 
+XPath Expression #2 
+doc("j_caesar.xml")//ACT[./TITLE]/*/SPEECH/../TITLE 
+ 
+1. SCENE I. Rome. A street.
+2. SCENE II. A public place.
+3. SCENE III. The same. A street.
+4. SCENE I. Rome. BRUTUS's orchard.
+5. SCENE II. CAESAR's house.
+6. SCENE III. A street near the Capitol.
+7. SCENE IV. Another part of the same street, before the house of BRUTUS.
+8. SCENE I. Rome. Before the Capitol; the Senate sitting above.
+9. SCENE II. The Forum.
+10. SCENE III. A street.
+11. SCENE I. A house in Rome.
+12. SCENE II. Camp near Sardis. Before BRUTUS's tent.
+13. SCENE III. Brutus's tent.
+14. SCENE I. The plains of Philippi.
+15. SCENE II. The same. The field of battle.
+16. SCENE III. Another part of the field.
+17. SCENE IV. Another part of the field.
+18. SCENE V. Another part of the field.
+ 
+XPath Expression #3 
+doc("j_caesar.xml")//ACT[./TITLE]/*/SPEECH/../*/.././TITLE 
+    same as above
+
+ 
+XPath Expression #4 
+doc("j_caesar.xml")//ACT[(./TITLE)is(./TITLE)]/*/SPEECH/../TITLE
+ 
+     same as above
+
+XPath Expression #5 
+doc("j_caesar.xml")//ACT[not(./TITLE)=(./TITLE)]/*/SPEECH/../TITLE

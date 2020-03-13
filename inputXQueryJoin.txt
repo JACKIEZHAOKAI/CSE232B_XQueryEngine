@@ -1,0 +1,213 @@
+##############################################
+# Query 1
+##############################################
+for 
+    $act in doc("j_caesar.xml")//ACT,
+    $title in $act/SCENE/TITLE,
+    $speaker1 in $act//SPEAKER/text(),
+    $speaker2 in $act//SPEAKER/text(),
+    $pg in doc("j_caesar.xml")//PGROUP,
+    $persona1 in $pg/PERSONA/text(),
+    $persona2 in $pg/PERSONA/text()   
+where $speaker1 eq $persona1 and $speaker2 eq $persona2 
+return
+    <tuple>{
+        <scene>{$title/text()}</scene>,
+        <persona1>{$persona1}</persona1>,
+        <persona2>{$persona2}</persona2>
+    }</tuple>
+
+
+OPT ==>
+
+for $tuple in join( for $act in  doc("j_caesar.xml") //ACT,$speaker2 in $act//SPEAKER/text(),$speaker1 in $act//SPEAKER/text(),$title in $act/SCENE/TITLE return <tuple>{<act>{$act}</act> , <speaker2>{$speaker2}</speaker2> , <speaker1>{$speaker1}</speaker1> , <title>{$title}</title>}</tuple>, for $pg in  doc("j_caesar.xml") //PGROUP,$persona1 in $pg/PERSONA/text(),$persona2 in $pg/PERSONA/text() return <tuple>{<pg>{$pg}</pg> , <persona1>{$persona1}</persona1> , <persona2>{$persona2}</persona2>}</tuple>,[speaker2,speaker1],[persona2,persona1]) return <tuple>{  <scene>{ $tuple/title/*/text() }</scene>  ,  <persona1>{ $tuple/persona1/* }</persona1>  ,  <persona2>{ $tuple/persona2/* }</persona2>  }</tuple> 
+
+
+##############################################
+# Query 2
+##############################################
+for $q1 in doc("j_caesar.xml")//ACT,
+  $q2 in doc("j_caesar.xml")//ACT,
+  $sa in $q1//SCENE,
+  $sb in $q2//SCENE,
+  $spa in $sa//SPEAKER,
+  $spb in $sa//SPEAKER/text(),
+  $spc in $sb//SPEAKER,
+  $spd in $sb//SPEAKER/text(),
+  $spea in $sa//SPEECH,
+  $speb in $sb//SPEECH,
+  $spec in $sa//SPEECH,
+  $sped in $sb//SPEECH
+where $spb="FLAVIUS" and $spd="FLAVIUS" and $sa eq $sb and $spa eq $spc and $speb eq $spec and $spea eq $sped
+return <result>{ <title>{$sa/TITLE/text()}</title>, <speaker>{$spa/*}</speaker> }</result>
+
+
+
+OPT ==>
+
+for $tuple in join(join(join(   
+                        for $a in  doc("j_caesar.xml") //ACT,$sa in $a//SCENE,$spa in $sa//SPEAKER,$spea in $sa//SPEECH return <tuple>{<a>{$a}</a> , <sa>{$sa}</sa> , <spa>{$spa}</spa> , <spea>{$spea}</spea>}</tuple>, for $b in  doc("j_caesar.xml") //ACT,$sb in $b//SCENE,$spb in $sb//SPEAKER/text(),$speb in $sb//SPEECH where $spb = "FLAVIUS" return <tuple>{<b>{$b}</b> , <sb>{$sb}</sb> , <spb>{$spb}</spb> , <speb>{$speb}</speb>}</tuple>,[],[]), 
+                    
+                        for $c in  doc("j_caesar.xml") //ACT,$sc in $c//SCENE,$spc in $sc//SPEAKER,$spec in $sc//SPEECH return <tuple>{<c>{$c}</c> , <sc>{$sc}</sc> , <spc>{$spc}</spc> , <spec>{$spec}</spec>}</tuple>,[spa,sb,speb],[spc,sc,spec]), 
+
+                        for $d in  doc("j_caesar.xml") //ACT,$sd in $d//SCENE,$spd in $sd//SPEAKER/text(),$sped in $sd//SPEECH where $spd = "FLAVIUS" return <tuple>{<d>{$d}</d> , <sd>{$sd}</sd> , <spd>{$spd}</spd> , <sped>{$sped}</sped>}</tuple>,[sa,spea],[sd,sped]) 
+
+
+return <result>{  <title>{ $tuple/sa/*/TITLE/text() }</title>  }</result>
+
+
+
+##############################################
+# Query 3
+##############################################
+for $a in doc("j_caesar.xml")//ACT,
+    $b in doc("j_caesar.xml")//ACT,
+    $c in doc("j_caesar.xml")//ACT,
+    $d in doc("j_caesar.xml")//ACT,
+    $sa in $a//SCENE,
+    $sb in $b//SCENE,
+    $sc in $c//SCENE,
+    $sd in $d//SCENE,
+    $spa in $sa//SPEAKER,
+    $spb in $sb//SPEAKER/text(),
+    $spc in $sc//SPEAKER,
+    $spd in $sd//SPEAKER/text(),
+    $spea in $sa//SPEECH,
+    $speb in $sb//SPEECH,
+    $spec in $sc//SPEECH,
+    $sped in $sd//SPEECH
+where $spb="FLAVIUS" and $spd="FLAVIUS" and $sb eq $sc and $sa eq $sd and $spa eq $spc and $speb eq $spec and $spea eq $sped
+return <result>{ <title>{$sa/TITLE/text()}</title> }</result>
+
+
+
+OPT ==>
+
+
+for $tuple in join( join(    join(   for $a in  doc("j_caesar.xml") //ACT,$sa in $a//SCENE,$spa in $sa//SPEAKER,$spea in $sa//SPEECH
+                                    return <tuple>{<a>{$a}</a> , <sa>{$sa}</sa> , <spa>{$spa}</spa> , <spea>{$spea}</spea>}</tuple>, 
+
+                                    for $b in  doc("j_caesar.xml") //ACT,$sb in $b//SCENE,$spb in $sb//SPEAKER/text(),$speb in $sb//SPEECH where $spb = "FLAVIUS" 
+                                    return <tuple>{<b>{$b}</b> , <sb>{$sb}</sb> , <spb>{$spb}</spb> , <speb>{$speb}</speb>}</tuple>,[],[]), 
+
+                        for $c in  doc("j_caesar.xml") //ACT,$sc in $c//SCENE,$spc in $sc//SPEAKER,$spec in $sc//SPEECH 
+                        return <tuple>{<c>{$c}</c> , <sc>{$sc}</sc> , <spc>{$spc}</spc> , <spec>{$spec}</spec>}</tuple>,[spa,sb,speb],[spc,sc,spec]), 
+
+
+            for $d in  doc("j_caesar.xml") //ACT,$sd in $d//SCENE,$spd in $sd//SPEAKER/text(),$sped in $sd//SPEECH where $spd = "FLAVIUS" 
+            return <tuple>{<d>{$d}</d> , <sd>{$sd}</sd> , <spd>{$spd}</spd> , <sped>{$sped}</sped>}</tuple>,[sa,spea],[sd,sped]) 
+
+return <result>{  <title>{ $tuple/sa/*/TITLE/text() }</title>  }</result> 
+
+
+
+
+##############################################
+XQuery 5
+##############################################
+
+for $b1 in doc("book.xml")//book,
+
+$aj in $b1/author/first/text(),
+
+$a1 in $b1/author, 
+
+$af1 in $a1/first/text(),
+
+$al1 in $a1/last/text(),
+
+ 
+
+$b2 in doc("book.xml")//book,
+
+$a21 in $b2/author,
+
+$af21 in $a21/first/text(),
+
+$al21 in $a21/last/text(),
+
+$a22 in $b2/author,
+
+$af22 in $a22/first/text(),
+
+$al22 in $a22/last/text(),
+
+ 
+
+$b3 in doc("book.xml")//book,
+
+$a3 in $b3/author,
+
+$af3 in $a3/first/text(),
+
+$al3 in $a3/last/text()
+
+where $aj eq "W." and $af1 eq $af21 and $al1 eq $al21 and $af22 eq $af3 and $al22 eq $al3
+
+return <triplet> { $b1, $b2, $b3} </triplet>
+
+
+OPT ====>>
+
+for $tuple in join(     join(   for $b1 in  doc("book.xml") //book,
+                                    $a1 in $b1/author,
+                                    $aj in $b1/author/first/text(),
+                                    $al1 in $a1/last/text(),
+                                    $af1 in $a1/first/text() 
+                                    where $aj = "W." 
+
+                                    return <tuple>{<b1>{$b1}</b1> , <a1>{$a1}</a1> , <aj>{$aj}</aj> , <al1>{$al1}</al1> , <af1>{$af1}</af1>}</tuple>, 
+
+                                for $b2 in  doc("book.xml") //book,
+                                    $a22 in $b2/author,
+                                    $a21 in $b2/author,
+                                    $af22 in $a22/first/text(),
+                                    $al22 in $a22/last/text(),
+                                    $af21 in $a21/first/text(),
+                                    $al21 in $a21/last/text() 
+
+                                    return <tuple>{<b2>{$b2}</b2> , <a22>{$a22}</a22> , <a21>{$a21}</a21> , <af22>{$af22}</af22> , <al22>{$al22}</al22> , <af21>{$af21}</af21> , <al21>{$al21}</al21>}</tuple>,
+
+                                    [al1,af1],  [al21,af21]   ), 
+
+
+                    for $b3 in  doc("book.xml") //book,
+                        $a3 in $b3/author,
+                        $al3 in $a3/last/text(),
+                        $af3 in $a3/first/text() 
+
+                        return <tuple>{<b3>{$b3}</b3> , <a3>{$a3}</a3> , <al3>{$al3}</al3> , <af3>{$af3}</af3>}</tuple>,[af22,al22],[af3,al3]   ) 
+
+
+return <triplet>{ $tuple/b1/* , $tuple/b2/* , $tuple/b3/* }</triplet> 
+
+
+##############################################
+XQuery 6
+##############################################
+
+for $s in doc("j_caesar.xml")//SPEAKER, 
+    $a in doc("j_caesar.xml")//ACT,
+
+    $sp in $a//SPEAKER, $stxt in $s/text()
+
+where $sp eq $s and $stxt = "CAESAR"
+
+return <act> { $a/TITLE/text()} </act>
+
+
+OPT ====>>
+
+for $tuple in join(     for $s in  doc("j_caesar.xml") //SPEAKER,
+                        $stxt in $s/text() where $stxt = "CAESAR" 
+                        return <tuple>{<s>{$s}</s> , <stxt>{$stxt}</stxt>}</tuple>, 
+
+                        for $a in  doc("j_caesar.xml") //ACT,
+                        $sp in $a//SPEAKER 
+                        return <tuple>{<a>{$a}</a> , <sp>{$sp}</sp>}</tuple>,
+
+                        [s],[sp]) 
+return 
+<act>
+{ $tuple/a/*/TITLE/text() }
+</act> 
