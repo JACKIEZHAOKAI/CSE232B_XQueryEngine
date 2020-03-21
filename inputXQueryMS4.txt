@@ -1,0 +1,137 @@
+for $b1 in doc("book.xml")/book,
+    $aj in $b1/author/first/text(),
+    $a1 in $b1/author,
+    $af1 in $a1/first,
+    $al1 in $a1/last,
+
+    $b2 in doc("book.xml")/book,
+    $a2 in $b2/author,
+    $af21 in $a2/first,
+    $al21 in $a2/last,
+
+    $b3 in doc("book.xml")/book,
+    $a3 in $b3/author,
+    $af3 in $a3/first,
+    $al3 in $a3/last,
+
+    $b4 in doc("book.xml")/book,
+    $a4 in $b4/author,
+    $af4 in $a4/first,
+    $al4 in $a4/last
+
+where $aj eq "W." and
+      $a1 eq $a2 and $a2 eq $a3 and
+      $a3 eq $a4
+
+return <triplet> {$b1, $b2, $b3, $b4} </triplet>
+
+==> Bushy Join
+
+for $tuple in join(     join(   for $b1 in  doc("book.xml") /book,$a1 in $b1/author,$aj in $b1/author/first/text(),$al1 in $a1/last,$af1 in $a1/first where $aj = "W." return <tuple>{<b1>{$b1}</b1> , <a1>{$a1}</a1> , <aj>{$aj}</aj> , <al1>{$al1}</al1> , <af1>{$af1}</af1>}</tuple>, 
+                                for $b2 in  doc("book.xml") /book,$a2 in $b2/author,$af21 in $a2/first,$al21 in $a2/last return <tuple>{<b2>{$b2}</b2> , <a2>{$a2}</a2> , <af21>{$af21}</af21> , <al21>{$al21}</al21>}</tuple>,
+                                [a1],[a2]),
+
+                        join(   for $b3 in  doc("book.xml") /book,$a3 in $b3/author,$al3 in $a3/last,$af3 in $a3/first return <tuple>{<b3>{$b3}</b3> , <a3>{$a3}</a3> , <al3>{$al3}</al3> , <af3>{$af3}</af3>}</tuple>, 
+                                for $b4 in  doc("book.xml") /book,$a4 in $b4/author,$al4 in $a4/last,$af4 in $a4/first return <tuple>{<b4>{$b4}</b4> , <a4>{$a4}</a4> , <al4>{$al4}</al4> , <af4>{$af4}</af4>}</tuple>,
+                                [a3],[a4]),
+
+                        [a2],[a3]) 
+
+return <triplet>{ $tuple/b1/* , $tuple/b2/* , $tuple/b3/* , $tuple/b4/* }</triplet> 
+
+
+
+##############################################
+# Query 2
+##############################################
+for $a in doc("j_caesar.xml")//ACT,
+    $b in doc("j_caesar.xml")//ACT,
+    $c in doc("j_caesar.xml")//ACT,
+    $d in doc("j_caesar.xml")//ACT,
+
+    $sa in $a//SCENE,
+    $sb in $b//SCENE,
+    $sc in $c//SCENE,
+    $sd in $d//SCENE,
+
+    $spa in $sa//SPEAKER,
+    $spb in $sb//SPEAKER/text(),
+    $spc in $sc//SPEAKER,
+    $spd in $sd//SPEAKER/text(),
+
+    $spea in $sa//SPEECH,
+    $speb in $sb//SPEECH,
+    $spec in $sc//SPEECH,
+    $sped in $sd//SPEECH
+
+where $spb="FLAVIUS" and $spd="FLAVIUS" and 
+
+
+$sb eq $sc and      $spa eq $spc and    $speb eq $spec and 
+
+$sa eq $sd and      $spea eq $sped
+
+
+return <result>{ <title>{$sa/TITLE/text()}</title> }</result>
+
+
+==> Bushy Join
+
+for $tuple in join(     join(   for $a in  doc("j_caesar.xml") //ACT,$sa in $a//SCENE,$spa in $sa//SPEAKER,$spea in $sa//SPEECH return <tuple>{<a>{$a}</a> , <sa>{$sa}</sa> , <spa>{$spa}</spa> , <spea>{$spea}</spea>}</tuple>, 
+                                for $b in  doc("j_caesar.xml") //ACT,$sb in $b//SCENE,$spb in $sb//SPEAKER/text(),$speb in $sb//SPEECH where $spb = "FLAVIUS" return <tuple>{<b>{$b}</b> , <sb>{$sb}</sb> , <spb>{$spb}</spb> , <speb>{$speb}</speb>}</tuple>,[spea],[speb]),
+
+                        join(   for $c in  doc("j_caesar.xml") //ACT,$sc in $c//SCENE,$spc in $sc//SPEAKER,$spec in $sc//SPEECH return <tuple>{<c>{$c}</c> , <sc>{$sc}</sc> , <spc>{$spc}</spc> , <spec>{$spec}</spec>}</tuple>, 
+                                for $d in  doc("j_caesar.xml") //ACT,$sd in $d//SCENE,$spd in $sd//SPEAKER/text(),$sped in $sd//SPEECH where $spd = "FLAVIUS" return <tuple>{<d>{$d}</d> , <sd>{$sd}</sd> , <spd>{$spd}</spd> , <sped>{$sped}</sped>}</tuple>,[spec],[sped]),
+
+                                [spa],[spc]) 
+
+return <result>{  <title>{ $tuple/sa/*/TITLE/text() }</title>  }</result> 
+
+
+
+############# joinStr   #############
+ for $a in  doc("j_caesar.xml") //ACT,$sa in $a//SCENE,$spa in $sa//SPEAKER,$spea in $sa//SPEECH return <tuple>{<a>{$a}</a> , <sa>{$sa}</sa> , <spa>{$spa}</spa> , <spea>{$spea}</spea>}</tuple>
+
+############# nextQueryStr   #############
+ for $b in  doc("j_caesar.xml") //ACT,$sb in $b//SCENE,$spb in $sb//SPEAKER/text(),$speb in $sb//SPEECH where $spb = "FLAVIUS" return <tuple>{<b>{$b}</b> , <sb>{$sb}</sb> , <spb>{$spb}</spb> , <speb>{$speb}</speb>}</tuple>
+
+############# nextQueryStr   #############
+ for $c in  doc("j_caesar.xml") //ACT,$sc in $c//SCENE,$spc in $sc//SPEAKER,$spec in $sc//SPEECH return <tuple>{<c>{$c}</c> , <sc>{$sc}</sc> , <spc>{$spc}</spc> , <spec>{$spec}</spec>}</tuple>
+
+############# nextQueryStr   #############
+ for $d in  doc("j_caesar.xml") //ACT,$sd in $d//SCENE,$spd in $sd//SPEAKER/text(),$sped in $sd//SPEECH where $spd = "FLAVIUS" return <tuple>{<d>{$d}</d> , <sd>{$sd}</sd> , <spd>{$spd}</spd> , <sped>{$sped}</sped>}</tuple>
+
+
+OPT ==>
+
+
+for $tuple in 
+
+            join( 
+                    join(    
+                            join(   for $a in  doc("j_caesar.xml") //ACT,$sa in $a//SCENE,$spa in $sa//SPEAKER,$spea in $sa//SPEECH
+                                    return <tuple>{<a>{$a}</a> , <sa>{$sa}</sa> , <spa>{$spa}</spa> , <spea>{$spea}</spea>}</tuple>, 
+
+                                    for $b in  doc("j_caesar.xml") //ACT,$sb in $b//SCENE,$spb in $sb//SPEAKER/text(),$speb in $sb//SPEECH where $spb = "FLAVIUS" 
+                                    return <tuple>{<b>{$b}</b> , <sb>{$sb}</sb> , <spb>{$spb}</spb> , <speb>{$speb}</speb>}</tuple>,
+
+                                    [],[]), 
+
+                    for $c in  doc("j_caesar.xml") //ACT,$sc in $c//SCENE,$spc in $sc//SPEAKER,$spec in $sc//SPEECH 
+                    return <tuple>{<c>{$c}</c> , <sc>{$sc}</sc> , <spc>{$spc}</spc> , <spec>{$spec}</spec>}</tuple>,
+
+                    [spa,sb,speb],[spc,sc,spec]), 
+
+
+            for $d in  doc("j_caesar.xml") //ACT,$sd in $d//SCENE,$spd in $sd//SPEAKER/text(),$sped in $sd//SPEECH where $spd = "FLAVIUS" 
+            return <tuple>{<d>{$d}</d> , <sd>{$sd}</sd> , <spd>{$spd}</spd> , <sped>{$sped}</sped>}</tuple>,
+            
+            [sa,spea],[sd,sped]) 
+
+
+
+return <result>{  <title>{ $tuple/sa/*/TITLE/text() }</title>  }</result> 
+
+
+
+

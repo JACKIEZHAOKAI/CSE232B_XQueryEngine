@@ -1,7 +1,7 @@
 import java.util.*;
 
 
-public class XQueryRewriterVisitor extends XQueryOptOverriddenVisitor{
+public class XQueryRewriterVisitor2 extends XQueryOptOverriddenVisitor{
 
     //####################################################################################
     // define data structures to build a graph dependency for variables in the query, help detect join
@@ -84,10 +84,11 @@ public class XQueryRewriterVisitor extends XQueryOptOverriddenVisitor{
          */
         public List<String> freeRestrictList;
 
-        /**
-         * List of variables already been joint into the rewritten join query
-         */
-        public List<Node> joinedNodes;
+//        /**
+//         * List of variables already been joint into the rewritten join query
+//         */
+////        public List<Node> joinedNodes;
+        LinkedList<List<Node>> joinNodesList;
 
         public boolean isOptimizable = false;
 
@@ -96,8 +97,11 @@ public class XQueryRewriterVisitor extends XQueryOptOverriddenVisitor{
             this.varEqualMap = new HashMap<>();
             this.varRestrictMap = new HashMap<>();
             this.freeRestrictList = new LinkedList<>();
-            this.joinedNodes = new LinkedList<>();
+//            this.joinedNodes = new LinkedList<>();
+            this.joinNodesList = new LinkedList<>();
+
         }
+
 
         public Node findNodes(String targetNode){
             // traverse all queryTree to search for the targetNode
@@ -128,6 +132,7 @@ public class XQueryRewriterVisitor extends XQueryOptOverriddenVisitor{
          *      $stxt in $s/text() where $stxt = "CAESAR"
          *      return <tuple>{<s>{$s}</s> , <stxt>{$stxt}</stxt>}</tuple>,
          */
+
         public String getNextQuery(){
 
             QueryTree queryTree = queryTrees.poll();
@@ -163,11 +168,11 @@ public class XQueryRewriterVisitor extends XQueryOptOverriddenVisitor{
             // update varEqualMap
             for(Node left : BFSList){
                 for(Node right : BFSList){
-                  if(varEqualMap.containsKey(left) && varEqualMap.get(left).contains(right)){
-                      whereList.add(left.name + " = "+ right.name);
-                      varEqualMap.get(left).remove(right);
-                      varEqualMap.get(right).remove(left);
-                  }
+                    if(varEqualMap.containsKey(left) && varEqualMap.get(left).contains(right)){
+                        whereList.add(left.name + " = "+ right.name);
+                        varEqualMap.get(left).remove(right);
+                        varEqualMap.get(right).remove(left);
+                    }
                 }
             }
 
@@ -192,14 +197,6 @@ public class XQueryRewriterVisitor extends XQueryOptOverriddenVisitor{
             xqueryStr.append(" return ");
             xqueryStr.append("<tuple>{" + String.join(" , ", retValList) + "}</tuple>");
 
-            //#############################################################
-            // udpate joinedNodes
-//            System.out.print("\n joinedNodes \n");
-//            for(Node n : joinedNodes){
-//                System.out.print(n.name);
-//            }
-            joinedNodes.addAll(BFSList);
-
             return xqueryStr.toString();
         }
     }
@@ -212,6 +209,7 @@ public class XQueryRewriterVisitor extends XQueryOptOverriddenVisitor{
     // visitCondEqual()         ==> update varEqualMap, freeRestrictList, varRestrictMap
     //####################################################################################
     DependencyGraph dependencyGraph = new DependencyGraph();
+
 
     /**
      * 'for' Variable 'in' path (',' Variable 'in' path)* 'where' cond 'return' returnClause      #XqFWR
@@ -253,53 +251,113 @@ public class XQueryRewriterVisitor extends XQueryOptOverriddenVisitor{
 
         rewritternXQuery.append("for $tuple in ");
 
-        // getNextQuery():  helper funciton to construct the XQuery of a queryTrees in the DependencyGraph
-        String joinStr = dependencyGraph.getNextQuery();
+        String joinStr = "";        //dependencyGraph.getNextQuery();
 
-        // traverse all the queryTrees in the DependencyGraph and add into  join( )
-        // execute left deep join !!!
-        while (dependencyGraph.queryTrees.size()>0){
-            List<Node> nextNodes = dependencyGraph.queryTrees.peek().BFS();
+        LinkedList<String> joinStringList = new LinkedList<>();
+        int index = 0;
+
+        // execute bushy join !!!
+        while(dependencyGraph.queryTrees.size()>0){
+
+            List<Node> nextNodes1 = dependencyGraph.queryTrees.get(0).BFS();    // List<Node> nextNodes = dependencyGraph.queryTrees.peek().BFS();
+            List<Node> nextNodes2 = dependencyGraph.queryTrees.get(1).BFS();
 
             LinkedList<String> leftStrLs = new LinkedList<>();
             LinkedList<String> rightStrLs = new LinkedList<>();
 
+            nextNodes1.addAll(nextNodes2);
+            dependencyGraph.joinNodesList.add(nextNodes1);  // add both to joinNodesList
+
             // detect if can rewrite to join
-            for(Node leftNode : dependencyGraph.joinedNodes){
+            for(Node leftNode : nextNodes1){
                 if(dependencyGraph.varEqualMap.containsKey(leftNode)){
-                    Set<Node> leftEqualSet = dependencyGraph.varEqualMap.get(leftNode);
-                    for(Node rightNode:nextNodes){
-                        if(leftEqualSet.contains(rightNode)){
-                            leftStrLs.add(leftNode.name.substring(1));
-                            rightStrLs.add(rightNode.name.substring(1));
-                            dependencyGraph.varEqualMap.get(leftNode).remove(rightNode);
-                            dependencyGraph.varEqualMap.get(rightNode).remove(leftNode);
-                        }
+                Set<Node> leftEqualSet = dependencyGraph.varEqualMap.get(leftNode);
+                for(Node rightNode : nextNodes2){
+                    if(leftEqualSet.contains(rightNode)){
+                        leftStrLs.add(leftNode.name.substring(1));
+                        rightStrLs.add(rightNode.name.substring(1));
+                        dependencyGraph.varEqualMap.get(leftNode).remove(rightNode);
+                        dependencyGraph.varEqualMap.get(rightNode).remove(leftNode);
                     }
+                }
                 }
             }
 
-            String nextQueryStr  = dependencyGraph.getNextQuery();
+            String nextQueryStr1  = dependencyGraph.getNextQuery(); // poll first node
+            String nextQueryStr2  = dependencyGraph.getNextQuery(); // poll 2nd node
 
             // format the rewritten Xquery inside join(...)
-            joinStr = "join(" +
-                    joinStr + "," +
-                    nextQueryStr + "," +
+            joinStringList.add( ("join(" +
+                    nextQueryStr1 + "," +
+                    nextQueryStr2 + "," +
                     "[" + String.join(",", leftStrLs) + "]," +
-                    "[" + String.join(",", rightStrLs) + "])";
-
+                    "[" + String.join(",", rightStrLs) + "])") );
         }
 
+        // ##########################################################
+        while(joinStringList.size()>1){
+
+            // traverse all pairs of nodes in joinNodesList
+            index = 0;
+            while(index < dependencyGraph.joinNodesList.size()){
+
+                List<Node> nextNodes1 = dependencyGraph.joinNodesList.get(index);
+                List<Node> nextNodes2 = dependencyGraph.joinNodesList.get(index+1);
+
+                LinkedList<String> leftStrLs = new LinkedList<>();
+                LinkedList<String> rightStrLs = new LinkedList<>();
+
+                // detect if can rewrite to join
+                for(Node leftNode : nextNodes1){
+                    if(dependencyGraph.varEqualMap.containsKey(leftNode)){
+                        Set<Node> leftEqualSet = dependencyGraph.varEqualMap.get(leftNode);
+                        for(Node rightNode : nextNodes2){
+                            if(leftEqualSet.contains(rightNode)){
+                                leftStrLs.add(leftNode.name.substring(1));
+                                rightStrLs.add(rightNode.name.substring(1));
+                                dependencyGraph.varEqualMap.get(leftNode).remove(rightNode);
+                                dependencyGraph.varEqualMap.get(rightNode).remove(leftNode);
+                            }
+                        }
+                    }
+                }
+
+                dependencyGraph.joinNodesList.pop();    // pop old nextNodes1
+                dependencyGraph.joinNodesList.pop();    // pop old nextNodes2
+
+                nextNodes1.addAll(nextNodes2);
+                dependencyGraph.joinNodesList.add(nextNodes1);  // add both to joinNodesList
+
+                // similarly
+                String nextQueryStr1 = joinStringList.get(index);
+                String nextQueryStr2 = joinStringList.get(index+1);
+
+                joinStringList.pop();
+                joinStringList.pop();
+
+                joinStringList.add( ("join(" +
+                        nextQueryStr1 + "," +
+                        nextQueryStr2 + "," +
+                        "[" + String.join(",", leftStrLs) + "]," +
+                        "[" + String.join(",", rightStrLs) + "])") );
+
+
+                index += 2;
+            }
+        }
+
+
+        // ###########################################################
         // set to true if is optimizable
         dependencyGraph.isOptimizable = true;
 
-
         // finialize the format of  for $tuple in join(     ) return ....
         String retClauseStr = visit(ctx.returnClause());        // visit returnClause
-        joinStr = joinStr + " return" + retClauseStr;
+        joinStr = joinStringList.poll() + " return" + retClauseStr;
         rewritternXQuery.append(joinStr);
 
         dependencyGraph = new DependencyGraph();
+
         return rewritternXQuery.toString();
     }
 

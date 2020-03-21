@@ -29,6 +29,10 @@ public class AntlrParserMain {
     public static void main(String[] args) {
 
         String inputFilePath = args[0];
+        if (args[1]==null){
+            System.out.println("please provide a flag.");
+        }
+        String flag = args[1];
         boolean optimizeOpen = true;
 
         try {
@@ -37,20 +41,36 @@ public class AntlrParserMain {
             // #########################################################################################
             // optimize the XQuery and store in antlrStr
             if(optimizeOpen){
-                System.out.println("part1: Output Rewritten query -- take as input a test query, detect join and then rewrite a query using join operator.");
-
-                System.out.println("############# optimized query #############");
+//                System.out.println("part1: Output Rewritten query -- take as input a test query, detect join and then rewrite a query using join operator.");
                 XQueryOptLexer xQueryLexer = new XQueryOptLexer(antlrStr);
                 CommonTokenStream tokens = new CommonTokenStream(xQueryLexer);
                 XQueryOptParser xQueryParser = new XQueryOptParser(tokens);
                 ParseTree xPathTree = xQueryParser.xq();
-                XQueryRewriterVisitor myVisitor = new XQueryRewriterVisitor();      // use XQueryRewriterVisitor here
+                String optimizedQuery="";
+                String optimizedQuery2="";
 
-                String optimizedQuery = myVisitor.visit(xPathTree);                 // visit and output a rewritten string
-                System.out.println(optimizedQuery);
+
+                if (flag.equals("-B")){
+                    System.out.println("execute bushy join plan.");
+                    XQueryRewriterVisitor2  bushyjoinVisitor = new XQueryRewriterVisitor2();      // run bushyJoin
+                    optimizedQuery2 = bushyjoinVisitor.visit(xPathTree);                 // visit and output a rewritten string
+                    System.out.println("############# optimized query #############");
+                    System.out.println(optimizedQuery2);
+                    antlrStr = CharStreams.fromString(optimizedQuery2);
+                }
+                else if (flag.equals("-L")){
+                    System.out.println("execute left-deep join plan");
+                    XQueryRewriterVisitor leftDeepJoinVisitor = new XQueryRewriterVisitor();      // run leftDeepJoin
+                    optimizedQuery = leftDeepJoinVisitor.visit(xPathTree);                 // visit and output a rewritten string
+                    System.out.println("############# optimized query #############");
+                    System.out.println(optimizedQuery);
+                    antlrStr = CharStreams.fromString(optimizedQuery);
+                }
+                else{
+                    System.out.println("Error: invalid flag, please provide a valid flag.");
+                }
+
                 System.out.println("############################################");
-
-                antlrStr = CharStreams.fromString(optimizedQuery);
             }
 
             // #########################################################################################
